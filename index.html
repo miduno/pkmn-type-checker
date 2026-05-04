@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポケモン タイプ相性チェッカー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+      border-bottom: 2px solid #e94560;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    header .pokeball {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #e94560 50%, #fff 50%);
+      border: 3px solid #fff;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    header .pokeball::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #fff;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #333;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 66px);
+    }
+
+    /* ===== LEFT PANEL ===== */
+    .left-panel {
+      background: #16213e;
+      border-right: 1px solid #0f3460;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #aaa;
+    }
+
+    .selected-display {
+      background: #0f3460;
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .selected-label {
+      font-size: 0.7rem;
+      color: #888;
+      letter-spacing: 0.08em;
+    }
+
+    .selected-types {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      min-height: 36px;
+    }
+
+    .selected-placeholder {
+      color: #555;
+      font-size: 0.85rem;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      border-radius: 8px;
+      border: 1px solid #0f3460;
+      background: #0f1b35;
+      color: #eee;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: #e94560;
+    }
+
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .type-btn {
+      padding: 8px 4px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      letter-spacing: 0.05em;
+      user-select: none;
+    }
+
+    .type-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      filter: brightness(1.15);
+    }
+
+    .type-btn.selected {
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+      transform: translateY(-1px);
+    }
+
+    .type-btn.hidden {
+      display: none;
+    }
+
+    .type-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .type-btn.disabled:hover {
+      transform: none;
+      box-shadow: none;
+      filter: grayscale(0.5);
+    }
+
+    .clear-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: 1px solid #2a4070;
+      color: #556;
+      border-radius: 6px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .clear-btn:hover {
+      border-color: #e94560;
+      color: #e94560;
+    }
+
+    /* ===== RIGHT PANEL ===== */
+    .right-panel {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 16px;
+      color: #444;
+      text-align: center;
+    }
+
+    .empty-state .big-icon {
+      font-size: 4rem;
+    }
+
+    .empty-state p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result-title {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    /* Effectiveness sections */
+    .eff-section {
+      background: #16213e;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #0f3460;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .eff-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px 18px;
+      min-width: 110px;
+      flex-shrink: 0;
+      border-right: 1px solid #0f3460;
+    }
+
+    .eff-badge {
+      font-size: 1.25rem;
+      font-weight: 900;
+      padding: 4px 14px;
+      border-radius: 5px;
+      min-width: 70px;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+
+    .eff-desc {
+      font-size: 0.7rem;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .eff-types {
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      align-content: center;
+    }
+
+    .eff-empty {
+      padding: 12px 16px;
+      color: #555;
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+
+    /* Type badge (used in right panel) */
+    .type-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      letter-spacing: 0.05em;
+    }
+
+    .type-icon {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* Effectiveness color themes */
+    .eff-x4  { background: #7b0000; }
+    .eff-x4 .eff-badge  { background: #ff1744; color: #fff; }
+
+    .eff-x2  { background: #2d2200; }
+    .eff-x2 .eff-badge  { background: #f0b429; color: #1a1a1a; }
+
+    .eff-x1  { background: #1e1e2e; }
+    .eff-x1 .eff-badge  { background: #546e7a; color: #fff; }
+
+    .eff-x05 { background: #00274a; }
+    .eff-x05 .eff-badge { background: #0288d1; color: #fff; }
+
+    .eff-x025 { background: #002540; }
+    .eff-x025 .eff-badge { background: #01579b; color: #fff; }
+
+    .eff-x0  { background: #1a1a1a; }
+    .eff-x0 .eff-badge  { background: #424242; color: #ccc; }
+
+    /* selected type in result header */
+    .type-tag-lg {
+      font-size: 1rem;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+      letter-spacing: 0.06em;
+    }
+
+    .plus-sign {
+      color: #555;
+      font-size: 1.2rem;
+      font-weight: 300;
+    }
+
+    /* ===== MOBILE TABS ===== */
+    .mobile-tabs {
+      display: none;
+      background: #16213e;
+      border-bottom: 2px solid #0f3460;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 13px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      color: #eee;
+      border-bottom-color: #e94560;
+    }
+
+    @media (max-width: 640px) {
+      .mobile-tabs { display: flex; }
+      .container { grid-template-columns: 1fr; }
+      .left-panel { border-right: none; }
+      .panel-hidden { display: none !important; }
+      header { padding: 8px 16px; }
+      header h1 { font-size: 0.95rem; }
+      header .pokeball { width: 22px; height: 22px; border-width: 2px; }
+      header .pokeball::after { width: 7px; height: 7px; }
+      .result-header .type-tag-lg { font-size: 0.8rem; padding: 4px 10px; }
+      .result-header .type-tag-lg .type-icon svg { width: 13px; height: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="pokeball"></div>
+  <h1>ポケモン タイプ相性チェッカー</h1>
+</header>
+
+<div class="mobile-tabs">
+  <button class="tab-btn active" data-tab="select">タイプ選択</button>
+  <button class="tab-btn" data-tab="result">相性結果</button>
+</div>
+
+<div class="container">
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="panel-title">タイプを選択（最大2つ）</div>
+
+    <div class="selected-display">
+      <div class="selected-label">選択中のタイプ</div>
+      <div class="selected-types" id="selectedDisplay">
+        <span class="selected-placeholder">タイプをクリックして選択</span>
+      </div>
+      <button class="clear-btn" id="clearBtn" title="選択をリセット">✕</button>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="タイプを検索…" autocomplete="off">
+    </div>
+
+    <div class="type-grid" id="typeGrid"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel" id="rightPanel">
+    <div class="empty-state" id="emptyState">
+      <div class="big-icon">⚡</div>
+      <p>左のパネルからタイプを<br>1つまたは2つ選んでください</p>
+    </div>
+    <div id="results" style="display:none; display:flex; flex-direction:column; gap:16px;"></div>
+  </div>
+</div>
+
+<script>
+const TYPES = [
+  { key: 'Normal',   ja: 'ノーマル',   color: '#9FA19F' },
+  { key: 'Fire',     ja: 'ほのお',     color: '#E62829' },
+  { key: 'Water',    ja: 'みず',       color: '#2980EF' },
+  { key: 'Grass',    ja: 'くさ',       color: '#3FA129' },
+  { key: 'Electric', ja: 'でんき',     color: '#FAC000' },
+  { key: 'Ice',      ja: 'こおり',     color: '#3DCEF3' },
+  { key: 'Fighting', ja: 'かくとう',   color: '#FF8000' },
+  { key: 'Poison',   ja: 'どく',       color: '#9141CB' },
+  { key: 'Ground',   ja: 'じめん',     color: '#915121' },
+  { key: 'Flying',   ja: 'ひこう',     color: '#81B9EF' },
+  { key: 'Psychic',  ja: 'エスパー',   color: '#EF4179' },
+  { key: 'Bug',      ja: 'むし',       color: '#91A119' },
+  { key: 'Rock',     ja: 'いわ',       color: '#AFA981' },
+  { key: 'Ghost',    ja: 'ゴースト',   color: '#704170' },
+  { key: 'Dragon',   ja: 'ドラゴン',   color: '#5060E1' },
+  { key: 'Dark',     ja: 'あく',       color: '#624D4E' },
+  { key: 'Steel',    ja: 'はがね',     color: '#60A1B8' },
+  { key: 'Fairy',    ja: 'フェアリー', color: '#EF70EF' },
+];
+
+const TYPE_SVG = {
+  Normal:   `<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`,
+  Fire:     `<path fill="currentColor" d="M12 2C10 6 7 8 8.5 12 7 11 6 8.5 6.5 6 4 9 3.5 13 5 15.5 6.5 18.5 9.5 21 12 21s5.5-2.5 7-5.5C20.5 13 20 9 17.5 6c-.5 2.5-2 4.5-3.5 4C15 7.5 15 4.5 12 2z"/>`,
+  Water:    `<path fill="currentColor" d="M12 2 5.5 12C3.5 15 4 18 6 19.5 7.5 21 9.5 22 12 22s4.5-1 6-2.5C20 18 20.5 15 18.5 12L12 2z"/>`,
+  Grass:    `<path stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none" d="M12 22v-12m0 0C11 6 7 3 4 4c3 4 7 9 8 6m0-6c1-4 5-7 8-6-3 4-7 9-8 6"/>`,
+  Electric: `<path fill="currentColor" d="M14.5 2 7 13.5h5.5L9.5 22 18 11h-6L14.5 2z"/>`,
+  Ice:      `<g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/><line x1="18.5" y1="5.5" x2="5.5" y2="18.5"/></g>`,
+  Fighting: `<rect fill="currentColor" x="7" y="4" width="4" height="6" rx="1.5"/><rect fill="currentColor" x="13" y="4" width="4" height="6" rx="1.5"/><path fill="currentColor" d="M6 11c0-2 1.5-3 3-3h6c1.5 0 3 1 3 3v1c0 2-1.5 3-3 3h-2v4h-2v-4H9c-1.5 0-3-1-3-3v-1z"/>`,
+  Poison:   `<path fill="currentColor" d="M12 2c-4.4 0-7 3.1-7 7 0 2.5 1.5 5 3.5 6.5L9 20h6l-.5-4.5C16.5 14 18 11.5 18 9c0-4-2.6-7-6-7z"/><circle cx="9.5" cy="9.5" r="1.8" fill="none" stroke="white" stroke-width="1.5"/><circle cx="14.5" cy="9.5" r="1.8" fill="none" stroke="white" stroke-width="1.5"/>`,
+  Ground:   `<path stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M3 18 12 8 21 18"/><line x1="2" y1="21" x2="22" y2="21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>`,
+  Flying:   `<path fill="currentColor" d="M12 9C9.5 5.5 5 5.5 2.5 8c5 0 8 2.5 9.5 7 1.5-4.5 4.5-7 9.5-7C19 5.5 14.5 5.5 12 9z"/><line x1="12" y1="15" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+  Psychic:  `<ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/>`,
+  Bug:      `<ellipse cx="12" cy="15" rx="5" ry="6" fill="currentColor"/><circle cx="12" cy="8" r="3.5" fill="currentColor"/><line x1="8.5" y1="6.5" x2="5" y2="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="6.5" x2="19" y2="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+  Rock:     `<path fill="currentColor" d="M12 3L20.5 9.5 18 21H6L3.5 9.5 12 3z"/>`,
+  Ghost:    `<path fill="currentColor" d="M5 21V10C5 6.1 8.1 3 12 3s7 3.1 7 7v11l-2.5-2.5-2.5 2.5-2-1.5-2 1.5-2.5-2.5L5 21z"/>`,
+  Dragon:   `<path stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M4 20 10 9 14 15 20 4"/><path stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" d="M4 14 10 9"/>`,
+  Dark:     `<path fill="currentColor" d="M12 3C7.6 3 4 6.6 4 11s3.6 8 8 8c-1.5-1.5-2.5-3.5-2.5-6S9.5 6.5 12 3z"/><path fill="currentColor" d="M14.5 4.5C16 6 17 8 17 10.5c0 3.5-2 6.5-5 7.5 3.8-.5 7-3.5 7-7 0-3.3-2-6-4.5-6.5z"/>`,
+  Steel:    `<path fill="currentColor" d="M12 2 21 7v7c0 4.5-4 8-9 9-5-1-9-4.5-9-9V7l9-5z"/>`,
+  Fairy:    `<path fill="currentColor" d="M12 2 13.5 8.5H20L15 12l2 7-5-3.5-5 3.5 2-7-5-3.5h6.5L12 2z"/>`,
+};
+
+function darkenColor(hex, factor = 0.62) {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+  return `rgb(${r},${g},${b})`;
+}
+
+function makeIcon(typeKey, size = 16) {
+  const info = getTypeInfo(typeKey);
+  const el = document.createElement('span');
+  el.className = 'type-icon';
+  el.style.color = darkenColor(info.color);
+  el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24">${TYPE_SVG[typeKey]}</svg>`;
+  return el;
+}
+
+// type_chart[attacker][defender] = multiplier (only non-1 entries)
+const TYPE_CHART = {
+  Normal:   { Rock: 0.5, Steel: 0.5, Ghost: 0 },
+  Fire:     { Fire: 0.5, Water: 0.5, Rock: 0.5, Dragon: 0.5, Grass: 2, Ice: 2, Bug: 2, Steel: 2 },
+  Water:    { Water: 0.5, Grass: 0.5, Dragon: 0.5, Fire: 2, Ground: 2, Rock: 2 },
+  Grass:    { Fire: 0.5, Grass: 0.5, Poison: 0.5, Flying: 0.5, Bug: 0.5, Steel: 0.5, Dragon: 0.5, Water: 2, Ground: 2, Rock: 2 },
+  Electric: { Grass: 0.5, Electric: 0.5, Dragon: 0.5, Ground: 0, Flying: 2, Water: 2 },
+  Ice:      { Fire: 0.5, Water: 0.5, Ice: 0.5, Steel: 0.5, Grass: 2, Ground: 2, Flying: 2, Dragon: 2 },
+  Fighting: { Normal: 2, Ice: 2, Rock: 2, Dark: 2, Steel: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Fairy: 0.5, Ghost: 0 },
+  Poison:   { Grass: 2, Fairy: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0 },
+  Ground:   { Fire: 2, Electric: 2, Poison: 2, Rock: 2, Steel: 2, Grass: 0.5, Bug: 0.5, Flying: 0 },
+  Flying:   { Grass: 2, Fighting: 2, Bug: 2, Electric: 0.5, Rock: 0.5, Steel: 0.5 },
+  Psychic:  { Fighting: 2, Poison: 2, Psychic: 0.5, Steel: 0.5, Dark: 0 },
+  Bug:      { Grass: 2, Psychic: 2, Dark: 2, Fire: 0.5, Fighting: 0.5, Flying: 0.5, Ghost: 0.5, Steel: 0.5, Fairy: 0.5 },
+  Rock:     { Fire: 2, Ice: 2, Flying: 2, Bug: 2, Fighting: 0.5, Ground: 0.5, Steel: 0.5 },
+  Ghost:    { Ghost: 2, Psychic: 2, Normal: 0, Dark: 0.5 },
+  Dragon:   { Dragon: 2, Steel: 0.5, Fairy: 0 },
+  Dark:     { Ghost: 2, Psychic: 2, Fighting: 0.5, Dark: 0.5, Fairy: 0.5 },
+  Steel:    { Ice: 2, Rock: 2, Fairy: 2, Fire: 0.5, Water: 0.5, Electric: 0.5, Steel: 0.5 },
+  Fairy:    { Fighting: 2, Dragon: 2, Dark: 2, Fire: 0.5, Poison: 0.5, Steel: 0.5 },
+};
+
+const EFF_GROUPS = [
+  { key: 'x4',   label: '×4',    cssClass: 'eff-x4',   desc: 'こうかはばつぐん！（×4）' },
+  { key: 'x2',   label: '×2',    cssClass: 'eff-x2',   desc: 'こうかはばつぐん！' },
+  { key: 'x1',   label: '×1',    cssClass: 'eff-x1',   desc: 'ふつう' },
+  { key: 'x0.5', label: '×½',    cssClass: 'eff-x05',  desc: 'こうかはいまひとつ…' },
+  { key: 'x0.25',label: '×¼',    cssClass: 'eff-x025', desc: 'こうかはいまひとつ…（×¼）' },
+  { key: 'x0',   label: '×0',    cssClass: 'eff-x0',   desc: 'こうかはないようだ…' },
+];
+
+let selectedTypes = [];
+
+function getTypeInfo(key) {
+  return TYPES.find(t => t.key === key);
+}
+
+function getEffectiveness(attackKey, defKeys) {
+  let mult = 1;
+  for (const defKey of defKeys) {
+    const row = TYPE_CHART[attackKey] || {};
+    const v = row[defKey];
+    if (v !== undefined) mult *= v;
+  }
+  return mult;
+}
+
+function multToKey(m) {
+  if (m === 4)    return 'x4';
+  if (m === 2)    return 'x2';
+  if (m === 1)    return 'x1';
+  if (m === 0.5)  return 'x0.5';
+  if (m === 0.25) return 'x0.25';
+  if (m === 0)    return 'x0';
+  return 'x1';
+}
+
+function buildTypeTag(typeKey, large = false) {
+  const info = getTypeInfo(typeKey);
+  const span = document.createElement('span');
+  span.className = large ? 'type-tag type-tag-lg' : 'type-tag';
+  span.style.background = info.color;
+  span.appendChild(makeIcon(typeKey, large ? 18 : 15));
+  span.appendChild(document.createTextNode(info.ja));
+  return span;
+}
+
+function renderSelectedDisplay() {
+  const el = document.getElementById('selectedDisplay');
+  el.innerHTML = '';
+  if (selectedTypes.length === 0) {
+    el.innerHTML = '<span class="selected-placeholder">タイプをクリックして選択</span>';
+    return;
+  }
+  selectedTypes.forEach((key, i) => {
+    if (i > 0) {
+      const plus = document.createElement('span');
+      plus.className = 'plus-sign';
+      plus.textContent = '+';
+      el.appendChild(plus);
+    }
+    el.appendChild(buildTypeTag(key, true));
+  });
+}
+
+function renderResults() {
+  const resultsEl = document.getElementById('results');
+  const emptyEl = document.getElementById('emptyState');
+
+  if (selectedTypes.length === 0) {
+    emptyEl.style.display = 'flex';
+    resultsEl.style.display = 'none';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  resultsEl.style.display = 'flex';
+  resultsEl.innerHTML = '';
+
+  // Compute effectiveness for each attacking type
+  const grouped = { x4: [], x2: [], x1: [], 'x0.5': [], 'x0.25': [], x0: [] };
+
+  for (const attackType of TYPES) {
+    const mult = getEffectiveness(attackType.key, selectedTypes);
+    const gKey = multToKey(mult);
+    grouped[gKey].push(attackType.key);
+  }
+
+  // Result header
+  const header = document.createElement('div');
+  header.className = 'result-header';
+  const rtitle = document.createElement('span');
+  rtitle.className = 'result-title';
+  rtitle.textContent = '防御タイプ：';
+  header.appendChild(rtitle);
+  selectedTypes.forEach((key, i) => {
+    if (i > 0) {
+      const plus = document.createElement('span');
+      plus.className = 'plus-sign';
+      plus.textContent = '+';
+      header.appendChild(plus);
+    }
+    header.appendChild(buildTypeTag(key, true));
+  });
+  resultsEl.appendChild(header);
+
+  // Render each effectiveness group (skip empty ones)
+  for (const grp of EFF_GROUPS) {
+    const types = grouped[grp.key];
+    if (types.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = `eff-section ${grp.cssClass}`;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'eff-header';
+
+    const badge = document.createElement('span');
+    badge.className = 'eff-badge';
+    badge.textContent = grp.label;
+
+    hdr.appendChild(badge);
+    section.appendChild(hdr);
+
+    const tags = document.createElement('div');
+    tags.className = 'eff-types';
+    types.forEach(key => {
+      tags.appendChild(buildTypeTag(key));
+    });
+    section.appendChild(tags);
+
+    resultsEl.appendChild(section);
+  }
+}
+
+function toggleType(key) {
+  const idx = selectedTypes.indexOf(key);
+  if (idx >= 0) {
+    selectedTypes.splice(idx, 1);
+  } else {
+    if (selectedTypes.length >= 2) return;
+    selectedTypes.push(key);
+  }
+  renderSelectedDisplay();
+  renderResults();
+  updateButtonStates();
+  if (window.innerWidth <= 640 && selectedTypes.length > 0) switchTab('result');
+}
+
+function updateButtonStates() {
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    const key = btn.dataset.key;
+    const isSelected = selectedTypes.includes(key);
+    const isFull = selectedTypes.length >= 2 && !isSelected;
+    btn.classList.toggle('selected', isSelected);
+    btn.classList.toggle('disabled', isFull);
+  });
+}
+
+function buildTypeGrid() {
+  const grid = document.getElementById('typeGrid');
+  TYPES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'type-btn';
+    btn.dataset.key = t.key;
+    btn.dataset.ja = t.ja;
+    btn.style.background = t.color;
+    btn.appendChild(makeIcon(t.key, 15));
+    btn.appendChild(document.createTextNode(t.ja));
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('disabled')) return;
+      toggleType(t.key);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    const ja = btn.dataset.ja;
+    const key = btn.dataset.key.toLowerCase();
+    const match = !q || ja.includes(q) || key.includes(q);
+    btn.classList.toggle('hidden', !match);
+  });
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  selectedTypes = [];
+  renderSelectedDisplay();
+  renderResults();
+  updateButtonStates();
+});
+
+// Mobile tabs
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelector('.left-panel').classList.toggle('panel-hidden', tab === 'result');
+  document.querySelector('.right-panel').classList.toggle('panel-hidden', tab === 'select');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Init
+buildTypeGrid();
+renderSelectedDisplay();
+</script>
+</body>
+</html>
