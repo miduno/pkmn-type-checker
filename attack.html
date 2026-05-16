@@ -633,12 +633,18 @@ function renderResults() {
   }
 }
 
+function saveState() {
+  localStorage.setItem('attack_type', selectedType || '');
+}
+
+function loadState() {
+  const saved = localStorage.getItem('attack_type') || '';
+  selectedType = TYPES.some(t => t.key === saved) ? saved : null;
+}
+
 function toggleType(key) {
-  if (selectedType === key) {
-    selectedType = null;
-  } else {
-    selectedType = key;
-  }
+  selectedType = selectedType === key ? null : key;
+  saveState();
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
@@ -679,6 +685,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
 
 document.getElementById('clearBtn').addEventListener('click', () => {
   selectedType = null;
+  saveState();
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
@@ -696,8 +703,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // Init
+loadState();
 buildTypeGrid();
 renderSelectedDisplay();
+renderResults();
+updateButtonStates();
 </script>
 </body>
 </html>

@@ -682,6 +682,17 @@ function renderResults() {
   }
 }
 
+function saveState() {
+  localStorage.setItem('defense_types', JSON.stringify(selectedTypes));
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('defense_types') || '[]');
+    selectedTypes = saved.filter(k => TYPES.some(t => t.key === k)).slice(0, 2);
+  } catch { selectedTypes = []; }
+}
+
 function toggleType(key) {
   const idx = selectedTypes.indexOf(key);
   if (idx >= 0) {
@@ -690,6 +701,7 @@ function toggleType(key) {
     if (selectedTypes.length >= 2) return;
     selectedTypes.push(key);
   }
+  saveState();
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
@@ -736,6 +748,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
 
 document.getElementById('clearBtn').addEventListener('click', () => {
   selectedTypes = [];
+  saveState();
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
@@ -753,8 +766,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // Init
+loadState();
 buildTypeGrid();
 renderSelectedDisplay();
+renderResults();
+updateButtonStates();
 </script>
 </body>
 </html>
