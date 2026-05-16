@@ -190,23 +190,15 @@
     }
 
     .clear-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
       background: transparent;
-      border: 1px solid #2a4070;
-      color: #556;
-      border-radius: 6px;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
+      border: 1px solid #333;
+      color: #aaa;
+      border-radius: 8px;
+      padding: 8px;
       cursor: pointer;
+      font-size: 0.8rem;
       transition: all 0.15s;
-      line-height: 1;
-      padding: 0;
+      text-align: center;
     }
 
     .clear-btn:hover {
@@ -455,12 +447,13 @@
       <div class="selected-types" id="selectedDisplay">
         <span class="selected-placeholder">タイプをクリックして選択</span>
       </div>
-      <button class="clear-btn" id="clearBtn" title="選択をリセット">✕</button>
     </div>
 
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="タイプを検索…" autocomplete="off">
     </div>
+
+    <button class="clear-btn" id="clearBtn">選択をリセット</button>
 
     <div class="type-grid" id="typeGrid"></div>
   </div>
