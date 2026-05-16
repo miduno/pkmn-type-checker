@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ポケモン タイプ相性チェッカー</title>
+  <title>ポケモン タイプ相性チェッカー（攻撃版）</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -50,6 +50,29 @@
       left: 50%;
       transform: translate(-50%, -50%);
       border: 2px solid #333;
+    }
+
+    .mode-nav {
+      background: #0f3460;
+      display: flex;
+      border-bottom: 1px solid #1a4a8a;
+    }
+
+    .mode-nav a {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      color: #888;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .mode-nav a.active {
+      color: #eee;
+      border-bottom-color: #e94560;
     }
 
     .container {
@@ -177,18 +200,6 @@
       display: none;
     }
 
-    .type-btn.disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      filter: grayscale(0.5);
-    }
-
-    .type-btn.disabled:hover {
-      transform: none;
-      box-shadow: none;
-      filter: grayscale(0.5);
-    }
-
     .clear-btn {
       position: absolute;
       top: 10px;
@@ -302,13 +313,6 @@
       align-content: center;
     }
 
-    .eff-empty {
-      padding: 12px 16px;
-      color: #555;
-      font-size: 0.85rem;
-      font-style: italic;
-    }
-
     /* Type badge (used in right panel) */
     .type-tag {
       display: inline-flex;
@@ -330,9 +334,6 @@
     }
 
     /* Effectiveness color themes */
-    .eff-x4  { background: #7b0000; }
-    .eff-x4 .eff-badge  { background: #ff1744; color: #fff; }
-
     .eff-x2  { background: #2d2200; }
     .eff-x2 .eff-badge  { background: #f0b429; color: #1a1a1a; }
 
@@ -341,9 +342,6 @@
 
     .eff-x05 { background: #00274a; }
     .eff-x05 .eff-badge { background: #0288d1; color: #fff; }
-
-    .eff-x025 { background: #002540; }
-    .eff-x025 .eff-badge { background: #01579b; color: #fff; }
 
     .eff-x0  { background: #1a1a1a; }
     .eff-x0 .eff-badge  { background: #424242; color: #ccc; }
@@ -357,12 +355,6 @@
       color: #fff;
       text-shadow: 0 1px 3px rgba(0,0,0,0.6);
       letter-spacing: 0.06em;
-    }
-
-    .plus-sign {
-      color: #555;
-      font-size: 1.2rem;
-      font-weight: 300;
     }
 
     /* ===== MOBILE TABS ===== */
@@ -391,29 +383,6 @@
       border-bottom-color: #e94560;
     }
 
-    .mode-nav {
-      background: #0f3460;
-      display: flex;
-      border-bottom: 1px solid #1a4a8a;
-    }
-
-    .mode-nav a {
-      flex: 1;
-      text-align: center;
-      padding: 10px;
-      color: #888;
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 700;
-      border-bottom: 3px solid transparent;
-      transition: all 0.15s;
-    }
-
-    .mode-nav a.active {
-      color: #eee;
-      border-bottom-color: #e94560;
-    }
-
     @media (max-width: 640px) {
       .mobile-tabs { display: flex; }
       .container { grid-template-columns: 1fr; }
@@ -436,8 +405,8 @@
 </header>
 
 <nav class="mode-nav">
-  <a href="index.html" class="active">🛡 防御チェック</a>
-  <a href="attack.html">⚔ 攻撃チェック</a>
+  <a href="index.html">🛡 防御チェック</a>
+  <a href="attack.html" class="active">⚔ 攻撃チェック</a>
 </nav>
 
 <div class="mobile-tabs">
@@ -448,10 +417,10 @@
 <div class="container">
   <!-- LEFT PANEL -->
   <div class="left-panel">
-    <div class="panel-title">タイプを選択（最大2つ）</div>
+    <div class="panel-title">攻撃タイプを選択（1つ）</div>
 
     <div class="selected-display">
-      <div class="selected-label">選択中のタイプ</div>
+      <div class="selected-label">選択中の攻撃タイプ</div>
       <div class="selected-types" id="selectedDisplay">
         <span class="selected-placeholder">タイプをクリックして選択</span>
       </div>
@@ -468,10 +437,10 @@
   <!-- RIGHT PANEL -->
   <div class="right-panel" id="rightPanel">
     <div class="empty-state" id="emptyState">
-      <div class="big-icon">⚡</div>
-      <p>左のパネルからタイプを<br>1つまたは2つ選んでください</p>
+      <div class="big-icon">⚔</div>
+      <p>左のパネルから攻撃タイプを<br>1つ選んでください</p>
     </div>
-    <div id="results" style="display:none; display:flex; flex-direction:column; gap:16px;"></div>
+    <div id="results" style="display:none; flex-direction:column; gap:16px;"></div>
   </div>
 </div>
 
@@ -556,38 +525,31 @@ const TYPE_CHART = {
   Fairy:    { Fighting: 2, Dragon: 2, Dark: 2, Fire: 0.5, Poison: 0.5, Steel: 0.5 },
 };
 
+// Groups for attack mode: only ×2, ×1, ×0.5, ×0
 const EFF_GROUPS = [
-  { key: 'x4',   label: '×4',    cssClass: 'eff-x4',   desc: 'こうかはばつぐん！（×4）' },
-  { key: 'x2',   label: '×2',    cssClass: 'eff-x2',   desc: 'こうかはばつぐん！' },
-  { key: 'x1',   label: '×1',    cssClass: 'eff-x1',   desc: 'ふつう' },
-  { key: 'x0.5', label: '×½',    cssClass: 'eff-x05',  desc: 'こうかはいまひとつ…' },
-  { key: 'x0.25',label: '×¼',    cssClass: 'eff-x025', desc: 'こうかはいまひとつ…（×¼）' },
-  { key: 'x0',   label: '×0',    cssClass: 'eff-x0',   desc: 'こうかはないようだ…' },
+  { key: 'x2',   label: '×2',  cssClass: 'eff-x2',  desc: 'こうかはばつぐん！' },
+  { key: 'x1',   label: '×1',  cssClass: 'eff-x1',  desc: 'ふつう' },
+  { key: 'x0.5', label: '×½',  cssClass: 'eff-x05', desc: 'こうかはいまひとつ…' },
+  { key: 'x0',   label: '×0',  cssClass: 'eff-x0',  desc: 'こうかはないようだ…' },
 ];
 
-let selectedTypes = [];
+let selectedType = null;
 
 function getTypeInfo(key) {
   return TYPES.find(t => t.key === key);
 }
 
-function getEffectiveness(attackKey, defKeys) {
-  let mult = 1;
-  for (const defKey of defKeys) {
-    const row = TYPE_CHART[attackKey] || {};
-    const v = row[defKey];
-    if (v !== undefined) mult *= v;
-  }
-  return mult;
+function getEffectiveness(attackKey, defKey) {
+  const row = TYPE_CHART[attackKey] || {};
+  const v = row[defKey];
+  return v !== undefined ? v : 1;
 }
 
 function multToKey(m) {
-  if (m === 4)    return 'x4';
-  if (m === 2)    return 'x2';
-  if (m === 1)    return 'x1';
-  if (m === 0.5)  return 'x0.5';
-  if (m === 0.25) return 'x0.25';
-  if (m === 0)    return 'x0';
+  if (m === 2)   return 'x2';
+  if (m === 1)   return 'x1';
+  if (m === 0.5) return 'x0.5';
+  if (m === 0)   return 'x0';
   return 'x1';
 }
 
@@ -604,26 +566,18 @@ function buildTypeTag(typeKey, large = false) {
 function renderSelectedDisplay() {
   const el = document.getElementById('selectedDisplay');
   el.innerHTML = '';
-  if (selectedTypes.length === 0) {
+  if (!selectedType) {
     el.innerHTML = '<span class="selected-placeholder">タイプをクリックして選択</span>';
     return;
   }
-  selectedTypes.forEach((key, i) => {
-    if (i > 0) {
-      const plus = document.createElement('span');
-      plus.className = 'plus-sign';
-      plus.textContent = '+';
-      el.appendChild(plus);
-    }
-    el.appendChild(buildTypeTag(key, true));
-  });
+  el.appendChild(buildTypeTag(selectedType, true));
 }
 
 function renderResults() {
   const resultsEl = document.getElementById('results');
   const emptyEl = document.getElementById('emptyState');
 
-  if (selectedTypes.length === 0) {
+  if (!selectedType) {
     emptyEl.style.display = 'flex';
     resultsEl.style.display = 'none';
     return;
@@ -633,13 +587,13 @@ function renderResults() {
   resultsEl.style.display = 'flex';
   resultsEl.innerHTML = '';
 
-  // Compute effectiveness for each attacking type
-  const grouped = { x4: [], x2: [], x1: [], 'x0.5': [], 'x0.25': [], x0: [] };
+  // Compute effectiveness for each defending type
+  const grouped = { x2: [], x1: [], 'x0.5': [], x0: [] };
 
-  for (const attackType of TYPES) {
-    const mult = getEffectiveness(attackType.key, selectedTypes);
+  for (const defType of TYPES) {
+    const mult = getEffectiveness(selectedType, defType.key);
     const gKey = multToKey(mult);
-    grouped[gKey].push(attackType.key);
+    grouped[gKey].push(defType.key);
   }
 
   // Result header
@@ -647,23 +601,15 @@ function renderResults() {
   header.className = 'result-header';
   const rtitle = document.createElement('span');
   rtitle.className = 'result-title';
-  rtitle.textContent = '防御タイプ：';
+  rtitle.textContent = '攻撃タイプ：';
   header.appendChild(rtitle);
-  selectedTypes.forEach((key, i) => {
-    if (i > 0) {
-      const plus = document.createElement('span');
-      plus.className = 'plus-sign';
-      plus.textContent = '+';
-      header.appendChild(plus);
-    }
-    header.appendChild(buildTypeTag(key, true));
-  });
+  header.appendChild(buildTypeTag(selectedType, true));
   resultsEl.appendChild(header);
 
   // Render each effectiveness group (skip empty ones)
   for (const grp of EFF_GROUPS) {
     const types = grouped[grp.key];
-    if (types.length === 0) continue;
+    if (!types || types.length === 0) continue;
 
     const section = document.createElement('div');
     section.className = `eff-section ${grp.cssClass}`;
@@ -675,7 +621,12 @@ function renderResults() {
     badge.className = 'eff-badge';
     badge.textContent = grp.label;
 
+    const desc = document.createElement('span');
+    desc.className = 'eff-desc';
+    desc.textContent = grp.desc;
+
     hdr.appendChild(badge);
+    hdr.appendChild(desc);
     section.appendChild(hdr);
 
     const tags = document.createElement('div');
@@ -690,26 +641,21 @@ function renderResults() {
 }
 
 function toggleType(key) {
-  const idx = selectedTypes.indexOf(key);
-  if (idx >= 0) {
-    selectedTypes.splice(idx, 1);
+  if (selectedType === key) {
+    selectedType = null;
   } else {
-    if (selectedTypes.length >= 2) return;
-    selectedTypes.push(key);
+    selectedType = key;
   }
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
-  if (window.innerWidth <= 640 && selectedTypes.length > 0) switchTab('result');
+  if (window.innerWidth <= 640 && selectedType) switchTab('result');
 }
 
 function updateButtonStates() {
   document.querySelectorAll('.type-btn').forEach(btn => {
     const key = btn.dataset.key;
-    const isSelected = selectedTypes.includes(key);
-    const isFull = selectedTypes.length >= 2 && !isSelected;
-    btn.classList.toggle('selected', isSelected);
-    btn.classList.toggle('disabled', isFull);
+    btn.classList.toggle('selected', key === selectedType);
   });
 }
 
@@ -723,10 +669,7 @@ function buildTypeGrid() {
     btn.style.background = t.color;
     btn.appendChild(makeIcon(t.key, 15));
     btn.appendChild(document.createTextNode(t.ja));
-    btn.addEventListener('click', () => {
-      if (btn.classList.contains('disabled')) return;
-      toggleType(t.key);
-    });
+    btn.addEventListener('click', () => toggleType(t.key));
     grid.appendChild(btn);
   });
 }
@@ -742,7 +685,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 
 document.getElementById('clearBtn').addEventListener('click', () => {
-  selectedTypes = [];
+  selectedType = null;
   renderSelectedDisplay();
   renderResults();
   updateButtonStates();
